@@ -46,7 +46,7 @@ struct testU : public eb::base {			//继承eb::base
 		GWPP("name", name, para);
 	}
 
-	testU(eb::memManager* m) :base(m) {}		//实现此签名的构造函数并传递eb::manager指针
+	testU(eb::manager* m) :base(m) {}		//实现此签名的构造函数并传递eb::manager指针
 
 	MEM_PERMISSION					//权限宏(如果是public可以不写)
 };
@@ -73,7 +73,7 @@ int main(){
 	a->setUrl("D:\\test");		//设置一个有效的目录
 	a->download();
 
-	testM* b = new testM();
+	testM* b = new testM();		//序列化->反序列化 接抛球
 	b->setUrl("D:\\test");
 	b->upload();
 
