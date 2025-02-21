@@ -315,7 +315,7 @@ inline void eb_testmain()
 		}
 
 		//optional test
-		testManagerA->tu2->optionalTest = 42.0;
+		testManagerA->tu2->optionalTest = (float)42.0;
 
 		//variant test
 		testManagerA->tu2->genetest = testUnitA;
