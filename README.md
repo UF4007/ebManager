@@ -24,7 +24,9 @@
 [English(pending)](README-en.md)  
 ### 提供了对有环图、继承等复杂数据结构的整体管理（序列化、跨文件引用、内存标记与全体析构）方案。
 
-### 支持几乎所有STL容器及其任意嵌套：例如std::unordered_map<int, std::variant<std::vector<int>, std::string>>
+### 支持几乎所有STL容器及其任意嵌套：例如std::unordered_map<int, std::variant<std::vector< int >, std::string>>
+
+### 出于数据结构的便捷性与稳定性考虑，不支持多线程。
 
 #### 如何使用
 这是一个headonly库。把ebManager文件夹复制到源目录下，在源代码中`#include "ebManager/ebManager.h"` 即可
