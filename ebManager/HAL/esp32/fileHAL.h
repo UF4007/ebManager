@@ -19,7 +19,7 @@ namespace file
     inline void Remove(const char *c)
     {
         nvs_handle handle2;
-        if (nvs_open(c, NVS_READWRITE, &handle2) == ESP_OK)
+        if (nvs_open(c, NVS_READWRITE, &handle2) != ESP_OK)
                 return;
         nvs_erase_all(handle2);
         nvs_close(handle2);
