@@ -29,3 +29,12 @@
 // MEDIUMBLOB ------------------------------> std::string series
 // BINARY ----------------------------------> via GWPP_Any (memory copy directly)
 // DATETIME --------------------------------> MYSQL_TIME, via GWPP_SQL_TIME
+
+
+#ifndef MEM_RTTI_ON
+#if defined(__GXX_RTTI) || defined(_CPPRTTI)
+#define MEM_RTTI_ON 1
+#else
+#define MEM_RTTI_ON 0
+#endif
+#endif

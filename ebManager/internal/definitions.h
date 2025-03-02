@@ -139,7 +139,7 @@ dumbPtr<mu, releaseable>::precision_cast(_anotherMu* pamu) {
 	}
 	else
 	{
-#if defined(__GXX_RTTI) || defined(_CPPRTTI)
+#if MEM_RTTI_ON
 		this->operator=(dynamic_cast<mu*>(pamu));
 #else
 		return false;
@@ -160,7 +160,7 @@ dumbPtr<mu, releaseable>::precision_cast() {
 	}
 	else
 	{
-#if defined(__GXX_RTTI) || defined(_CPPRTTI)
+#if MEM_RTTI_ON
 		this->operator=(dynamic_cast<_anotherMu*>(ptr->content));
 #else
 		return nullptr;
@@ -2898,6 +2898,26 @@ inline void manager::serialize(std::vector<uint8_t>* bc)
 		memcpy(&*(bc->end() - 1) - sizeof(uint32_t) + 1, &iter.sectionStartOffset, sizeof(uint32_t));
 	}
 	this->ptrTable.clear();
+}
+template<typename T>
+bool manager::deserializeSub(T& sub, uint8_t* Ptr, uint32_t StringSize)
+{
+
+}
+template<typename T>
+bool manager::serializeSub(T& sub, const std::string&)
+{
+
+}
+template<typename T>
+bool manager::deserializeSubJson(T& sub, uint8_t* Ptr, uint32_t StringSize)
+{
+
+}
+template<typename T>
+bool manager::serializeSubJson(T& sub, const std::string&)
+{
+
 }
 
 
