@@ -139,12 +139,11 @@ dumbPtr<mu, releaseable>::precision_cast(_anotherMu* pamu) {
 	}
 	else
 	{
-		//this->operator=(dynamic_cast<mu>(pamu));
-		if (base::get_vtable_ptr<mu>::ptr() == *(void**)std::addressof(*pamu))		//if RTTI was banned use the vTable pointer to judge
-		{
-			this->operator=(reinterpret_cast<mu*>(pamu));
-			return true;
-		}
+#if defined(__GXX_RTTI) || defined(_CPPRTTI)
+		this->operator=(dynamic_cast<mu*>(pamu));
+#else
+		return false;
+#endif
 	}
 	return false;
 }
@@ -161,10 +160,11 @@ dumbPtr<mu, releaseable>::precision_cast() {
 	}
 	else
 	{
-		if (base::get_vtable_ptr<_anotherMu>::ptr() == *(void**)std::addressof(*ptr->content))		//if RTTI was banned use the vTable pointer to judge
-		{
-			return reinterpret_cast<_anotherMu*>(ptr->content);
-		}
+#if defined(__GXX_RTTI) || defined(_CPPRTTI)
+		this->operator=(dynamic_cast<_anotherMu*>(ptr->content));
+#else
+		return nullptr;
+#endif
 	}
 	return nullptr;
 }
@@ -434,25 +434,6 @@ inline bool base::reflectionWrite(ReflectResultKeyValue inputKW)
 
 
 //base
-template<typename T>
-struct base::get_vtable_ptr {
-	static_assert(std::is_polymorphic<T>::value, "get vtable pointer ERROR: T must be a polymorphic type");
-	static inline void* ptr() {
-		static void* ptr = [] {
-			if constexpr (std::is_default_constructible<T>::value)	//manager
-			{
-				T temp = T();
-				return *(void**)std::addressof(temp);
-			}
-			else													//base
-			{
-				T temp = T(nullptr);
-				return *(void**)std::addressof(temp);
-			}
-		}();
-		return ptr;
-	}
-};
 inline base::base(manager* manager) {
 	this->mngr = manager;
 	if (manager)
@@ -2921,10 +2902,10 @@ inline void manager::serialize(std::vector<uint8_t>* bc)
 
 
 
-//variant adaptor
+//variant helper
 template <typename First, typename ...Args>
 template<bool _void, typename IterFirst, typename... IterArgs>
-inline bool lowlevel::pushVariantHelper<First, Args...>::createIter(uint32_t i, std::variant<First, Args...>& variant, base* mu, para& para) noexcept
+inline bool eb::lowlevel::pushVariantHelper<First, Args...>::createIter(uint32_t i, std::variant<First, Args...>& variant, base* mu, para& para) noexcept
 {
 	if (i == 0)
 	{

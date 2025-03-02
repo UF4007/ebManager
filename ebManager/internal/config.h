@@ -1,9 +1,9 @@
-//serialize recursive level limit(no used)
-#ifndef MEM_RECURSIVE_LEVEL
-#define MEM_RECURSIVE_LEVEL 1000
+//Small Object Optimize of mem-pointer Control-Block. Best when single thread.
+#ifndef MEM_CTRLBL_SSO
+#define MEM_CTRLBL_SSO 0
 #endif
 
-//turn on the reflection relative code
+//turn on the static reflection relative code
 #ifndef MEM_REFLECTION_ON
 #define MEM_REFLECTION_ON 0
 #endif

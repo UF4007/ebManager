@@ -248,12 +248,14 @@ class lowlevel {
 			count = 1;
 			content = m;
 		}
+#if MEM_CTRLBL_SSO
 		inline static std::atomic_flag lockPool = ATOMIC_FLAG_INIT; 
 		inline static std::atomic_flag lockFreed = ATOMIC_FLAG_INIT; 
 		static std::deque<memPtrComm> memPool; 
 		static std::stack<memPtrComm*> memFreed; 
 		static void* operator new(size_t size) noexcept; 
 		static void operator delete(void* pthis) noexcept;
+#endif
 	};
 
 	//corresponding pointer
@@ -355,6 +357,7 @@ public:
 		tmbuf.tm_wday = (4 + * timestamp / day_s) % 7;
 	}
 };
+#if MEM_CTRLBL_SSO
 inline std::deque<eb::lowlevel::memPtrComm> eb::lowlevel::memPtrComm::memPool = {}; 
 inline std::stack<eb::lowlevel::memPtrComm*> eb::lowlevel::memPtrComm::memFreed = {}; 
 inline void* eb::lowlevel::memPtrComm::operator new(size_t size) noexcept
@@ -383,3 +386,4 @@ inline void eb::lowlevel::memPtrComm::operator delete(void* pthis) noexcept
 	memFreed.push((eb::lowlevel::memPtrComm*)pthis);
 	lockFreed.clear(std::memory_order_release);
 }
+#endif

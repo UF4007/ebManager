@@ -29,7 +29,7 @@ namespace eb {	// en bloc
 	constexpr size_t likelyBytesPerUnit = 100;			//reserve vector capacity we assumed for per eb::base.
 
 	//headonly version distinguish, prevent the linker from mixing differental versions when multi-reference.
-	inline namespace v247a {
+	inline namespace v3 {
 
 #include "internal/dataStructure.h"
 #include "internal/forwardDeclarations.h"
@@ -37,6 +37,7 @@ namespace eb {	// en bloc
 #include "internal/lowlevel.h"
 
 		// data structure meta unit
+		// UB: Create an eb::base with a manager-managed on the stack or global section.
 		class base {
 			__MEMMNGR_INTERNAL_HEADER_PERMISSION
 			lowlevel::memPtrComm* sharedPtr = nullptr;
@@ -55,20 +56,25 @@ namespace eb {	// en bloc
 				eb::has_save_fetch_struct<_T>::value ||
 				eb::is_chrono<_T>::value ||
 				eb::is_impPtr<_T>::value || eb::is_memPtr<_T>::value;
-			template<typename T> struct get_vtable_ptr;
 			void operator=(const base& munit) = delete;		//use smart pointers to do with RAII please.
 			void operator=(base&& munit) = delete;
 			inline manager* getManager() const { return mngr; }
 #if MEM_REFLECTION_ON
 			void reflectionRead(ReflectResult* output);
-			bool reflectionWrite(ReflectResultKeyValue inputKW);					//write a single variable using reflection, true for success, false for fail
+			//write a single variable using reflection, true for success, false for fail
+			bool reflectionWrite(ReflectResultKeyValue inputKW);
 #endif
-			bool deserialize(uint8_t* Ptr, uint32_t StringSize);			//binary serialize a eb::base to raw data format, ignore all pointers
-			void serialize(std::vector<uint8_t>* bc);						//binary deserialize a raw data format to a eb::base, ignore all pointers
+			//binary serialize a eb::base to raw data format, ignore all pointers
+			bool deserialize(uint8_t* Ptr, uint32_t StringSize);
+			//binary deserialize a raw data format to a eb::base, ignore all pointers
+			void serialize(std::vector<uint8_t>* bc);
 #if MEM_RJSON_ON
-			void serializeJson(std::string* bc);									//serialize a eb::base to json. for recurring objects, ignore then
+			//serialize a eb::base to json. for recurring objects, ignore then
+			void serializeJson(std::string* bc);
+			//deserialize a eb::base from a json string
 			bool deserializeJson(const std::string& bc);
-			bool deserializeJson(const char* Ptr, uint32_t StringSize);				//deserialize a eb::base from a json string
+			//deserialize a eb::base from a json string
+			bool deserializeJson(const char* Ptr, uint32_t StringSize);
 #endif
 #if MEM_MYSQL_ON
             template <typename _T>
@@ -80,8 +86,9 @@ namespace eb {	// en bloc
                 const char* key;
                 bool readonly;
             };
+			// create a temporary object of T, save_fetch then
             template <typename T>
-            static std::enable_if_t<std::is_base_of<base, T>::value, std::vector<mysql_meta>> get_SQL_metadata(); // create a temporary object of T, save_fetch then
+            static std::enable_if_t<std::is_base_of<base, T>::value, std::vector<mysql_meta>> get_SQL_metadata();
             static std::chrono::system_clock::time_point SQL_TIME_to_tp(MYSQL_TIME time);
             static MYSQL_TIME tp_to_SQL_TIME(std::chrono::system_clock::time_point tp);
             void SQL_bind(std::vector<mysql_meta> &metadata, MYSQL_BIND *read_bind_out, MYSQL_BIND *write_bind_out, size_t *psize);
@@ -95,64 +102,82 @@ namespace eb {	// en bloc
 			base(base&& munit) noexcept;
 			virtual ~base();
 			virtual void save_fetch(para para) = 0;
+			//read or write any struct bluntly (via memcpy)
 			template<class _any>
-			void GWPP_Any(const char* key, _any& var, para& para);		//read or write any struct bluntly (via memcpy)
+			void GWPP_Any(const char* key, _any& var, para& para);
 			template<class _T>
 			std::enable_if_t<eb::base::isGWPPValid<_T>, void>
 				GWPP(const char* key, _T& var, para& para);
+			//for any custom struct that fulfilled member function save_fetch_sub()
 			template<typename _memSub>
 			std::enable_if_t<eb::has_save_fetch_sub<_memSub>::value, void>
-				GWPP(const char* key, _memSub& varST, para& para);		//for any custom struct that fulfilled member function save_fetch_sub()
+				GWPP(const char* key, _memSub& varST, para& para);
 #if MEM_MYSQL_ON
+			// designate this key as read-only, never archive.
             template <class _T>
             std::enable_if_t<eb::base::isMySQLValid<_T> || eb::has_save_fetch_sub<_T>::value, void>
-            GWPP_SQL_READ(const char *key, _T &var, para &para);                 // designate this key as read-only, never archive.
+            GWPP_SQL_READ(const char *key, _T &var, para &para);
             void GWPP_SQL_TIME_READ(const char *key, MYSQL_TIME &var, para &para);
-            void GWPP_SQL_TIME(const char *key, MYSQL_TIME &var, para &para); // MYSQL_TIME cannot be serialized/deserialized in non-MySQL format e.g. json.
+			// MYSQL_TIME cannot be serialized/deserialized in non-MySQL format e.g. json.
+            void GWPP_SQL_TIME(const char *key, MYSQL_TIME &var, para &para);
 #endif
 		private:
-			inline base() { mngr = nullptr; }							//this constructor is for managers. never use it manually.
-			base* operator&() = delete;									//forbidden to get the address of a eb::base, it means prohibit to create a eb::base on stack.
+			//this constructor is for managers. never use it manually.
+			inline base() { mngr = nullptr; }
 
 			template<class _subType>
 			static constexpr size_t getArrayValueTypeSize();
+			//read or write arithmetic type
 			template<class _arit>
-			std::enable_if_t<std::is_arithmetic<_arit>::value, void>				//read or write arithmetic type
+			std::enable_if_t<std::is_arithmetic<_arit>::value, void>
 				GWPP_Base(void* pValue, _arit& var, para& para);
+			//read or write arithmetic type or their original array
 			template<class _array>
 			std::enable_if_t<std::is_array<_array>::value&& eb::base::isGWPPValid<typename std::remove_extent<_array>::type>, void>
-				GWPP_Base(void* pValue, _array& var, para& para);				//read or write arithmetic type or their original array
+				GWPP_Base(void* pValue, _array& var, para& para);
+			//read or write stl container
 			template<class _stlCont>
 			std::enable_if_t<eb::is_stl_container<_stlCont>::value, void>
-				GWPP_Base(void* pValue, _stlCont& var, para& para);				//read or write stl container
+				GWPP_Base(void* pValue, _stlCont& var, para& para);
+			//read or write atomic
 			template<class _atom>
 			std::enable_if_t<eb::is_atomic<_atom>::value, void>
-				GWPP_Base(void* pValue, _atom& var, para& para);					//read or write atomic
+				GWPP_Base(void* pValue, _atom& var, para& para);
+			//read or write chrono, system clock timepoint has a special json expression than common chrono
 			template<class _chrono>
 			std::enable_if_t<eb::is_chrono<_chrono>::value, void>
-				GWPP_Base(void* pValue, _chrono& var, para& para);				//read or write chrono, system clock timepoint has a special json expression than common chrono
+				GWPP_Base(void* pValue, _chrono& var, para& para);
+			//read or write string, always memcpy no matter what the content saved by container
 			template<class _string>
 			std::enable_if_t<eb::is_string<_string>::value, void>
-				GWPP_Base(void* pValue, _string& var, para& para);				//read or write string, always memcpy no matter what the content saved by container
+				GWPP_Base(void* pValue, _string& var, para& para);
+			//read or write enum
 			template<class _enum>
 			std::enable_if_t<std::is_enum<_enum>::value, void>
-				GWPP_Base(void* pValue, _enum& var, para& para);					//read or write enum
+				GWPP_Base(void* pValue, _enum& var, para& para);
 
 			//for unions, it is more safety to designate them manually. no GWPP was offered.
-			template<class...Args>
-			void GWPP_Base(void* pValue, std::variant<Args...>& var, para& para);//read or write variants
-			template<class T1, class T2>
-			void GWPP_Base(void* pValue, std::pair<T1, T2>& var, para& para);	//read or write pair
-			template<class T>
-			void GWPP_Base(void* pValue, std::optional<T>& var, para& para);		//read or write optional
 
+			//read or write variants
+			template<class...Args>
+			void GWPP_Base(void* pValue, std::variant<Args...>& var, para& para);
+			//read or write pair
+			template<class T1, class T2>
+			void GWPP_Base(void* pValue, std::pair<T1, T2>& var, para& para);
+			//read or write optional
+			template<class T>
+			void GWPP_Base(void* pValue, std::optional<T>& var, para& para);
+
+			//for any custom struct that fulfilled member function save_fetch_struct() and fixed memory size save_fetch_size
 			template<typename _memStruct>
 			std::enable_if_t<eb::has_save_fetch_struct<_memStruct>::value, void>
-				GWPP_Base(void* pValue, _memStruct& varST, para& para);			//for any custom struct that fulfilled member function save_fetch_struct() and fixed memory size save_fetch_size
+				GWPP_Base(void* pValue, _memStruct& varST, para& para);
+			//read or write implicit pointer
 			template<typename _mu, bool _r>
-			void GWPP_Base(void* pValue, impPtr<_mu, _r>& var, para& para);		//read or write implicit pointer
+			void GWPP_Base(void* pValue, impPtr<_mu, _r>& var, para& para);
+			//read or write memory pointer
 			template<typename _mu, bool _r>
-			void GWPP_Base(void* pValue, memPtr<_mu, _r>& var, para& para);		//read or write memory pointer
+			void GWPP_Base(void* pValue, memPtr<_mu, _r>& var, para& para);
 		};
 
 		// smart pointer of eb::base. original dumb pointer. It only counts, points stuff and can never be save-fetch.
@@ -168,25 +193,33 @@ namespace eb {	// en bloc
 			dumbPtr(mu* pmu);
 			~dumbPtr();
             dumbPtr(const dumbPtr<mu, releaseable> &mp) noexcept;
-            void operator=(const dumbPtr<mu, releaseable>& mp) noexcept;						//copy
+			//copy
+            void operator=(const dumbPtr<mu, releaseable>& mp) noexcept;
 			dumbPtr(dumbPtr<mu, releaseable>&& mp) noexcept;
-			void operator=(dumbPtr<mu, releaseable>&& mp) noexcept;								//move
+			//move
+			void operator=(dumbPtr<mu, releaseable>&& mp) noexcept;
+			//polymorphic construct (derived to eb::base)
 			template<typename _any, bool _r>
-			dumbPtr(const dumbPtr<_any, _r>& mp);												//polymorphic construct (derived to eb::base)
+			dumbPtr(const dumbPtr<_any, _r>& mp);
+			//polymorphic copy (derived to eb::base)
 			template<typename _any, bool _r>
 			typename std::enable_if<
 				(!std::is_same_v<mu, _any> &&
 					(std::is_base_of_v<mu, _any> //|| std::is_base_of_v<_any, mu>
 						) && _r == releaseable), void>::type
-				operator=(const dumbPtr<_any, _r>& mp);											//polymorphic copy (derived to eb::base)
-			void operator=(mu* pmu);															//set a memPtr a raw pointer
+				operator=(const dumbPtr<_any, _r>& mp);
+			//set a memPtr a raw pointer
+			void operator=(mu* pmu);
+			//cast in. 0 for fail, 1 for success.
 			template<typename _anotherMu>
 			std::enable_if_t<std::is_base_of<base, _anotherMu>::value, bool>
-				precision_cast(_anotherMu* pamu);												//cast in derive to eb::base, or has the same VTable pointer then. 0 for fail, 1 for success.
+				precision_cast(_anotherMu* pamu);
+			//cast out. nullptr for fail.
 			template<typename _anotherMuPtr>
 			std::enable_if_t<std::is_base_of<base, typename std::remove_pointer<_anotherMuPtr>::type>::value, _anotherMuPtr>
-				precision_cast();																//cast out derive to eb::base, or has the same VTable pointer then. 0 for fail, 1 for success.
-			void swap(dumbPtr& sw);																//exchange
+				precision_cast();
+			//exchange
+			void swap(dumbPtr& sw);
 			void swap(impPtr<mu, releaseable>& right) = delete;
 			void swap(memPtr<mu, releaseable>& right) = delete;
 			bool isFilled() const;
@@ -197,9 +230,12 @@ namespace eb {	// en bloc
 			mu* operator*() const;
 			mu* operator->() const;
 			void release();
-			void moveIn(dumbPtr& right);														//move a smart pointer in
-			inline void operator<<(dumbPtr& right) { this->moveIn(right); }						//move a smart pointer in
-			void supplantIn(mu* newOne);														//use a new eb::base to supplant, all memPtr who points the old eb::base will point the new. free the old (if have).
+			//move a smart pointer in
+			void moveIn(dumbPtr& right);
+			//move a smart pointer in
+			inline void operator<<(dumbPtr& right) { this->moveIn(right); }
+			//use a new eb::base to supplant, all memPtr who points the old eb::base will point the new. free the old (if have).
+			void supplantIn(mu* newOne);
 		};
 
 		// implicit pointer, which points and counts the same as dumbPtr, but when fetch it will never create a new class, only try to match an existing class from the 'corresponding table'.
@@ -239,7 +275,8 @@ namespace eb {	// en bloc
 		};
 
 		// special param in save_fetch function
-		struct para {						//do not do any relative with this structure till you know how this lib works completely.
+		//do not do any relative with this structure till you know how this lib works completely.
+		struct para {
 			union {
 				struct {
 					uint8_t* startPointer;				//where the section start pointed by ptrTable
@@ -423,7 +460,8 @@ namespace eb {	// en bloc
 			Ingress(const Ingress&) = default;
 			Ingress(Ingress&&) = default;
 			Ingress& operator=(const Ingress& right) = default;
-			virtual const char* getConstTypeName() = 0;					//fulfill it, return a const char type name
+			//fulfill it, return a const char type name
+			virtual const char* getConstTypeName() = 0;
 		protected:
 			inline Ingress(manager* m) :base(m) {};
 			inline ~Ingress();
@@ -466,12 +504,14 @@ namespace eb {	// en bloc
 		};
 
 		// egress smart pointer wrapped by template
+		// RTTI must be enabled.
 		template<class cast>
 		struct pEgress :public memPtr<Egress> {
 			__MEMMNGR_INTERNAL_HEADER_PERMISSION
 				static_assert(std::is_base_of<Ingress, cast>::value, "pEgress template ERROR: cast target must derived from Ingress class");
 			void getFileName(char* strOut, uint32_t length);
-			egressFindErr getTarget(cast*& varReturn);									//getTarget will find target manager in global file list. remember upload target manager before use this function.
+			//getTarget will find target manager in global file list. remember upload target manager before use this function.
+			egressFindErr getTarget(cast*& varReturn);
 			void makeEIPair(manager* egressMngr, const memPtr<cast>& target, const char* kw);
 			inline pEgress() {}
 			pEgress(manager* egressMngr, const memPtr<cast>& target, const char* kw);
@@ -488,11 +528,14 @@ namespace eb {	// en bloc
 			void save_fetch(para para) override;
 			vector_memPtr<Egress> egresses;
 		public:
-			inline int findGlobalManager();				//1 for success, 0 for fail
+			//1 for success, 0 for fail
+			inline int findGlobalManager();
 			std::string fileName;
-			dumbPtr<manager> ptrManager;				//never save-fetch
+			//never save-fetch
+			dumbPtr<manager> ptrManager;
+			//try to load the relative manager with specified directory before the file name. 0 for failed, 1 for successed.
 			template<typename _type>
-			bool tryLoadSubfile(const char* directory = nullptr);				//try to load the relative manager with specified directory before the file name. 0 for failed, 1 for successed.
+			bool tryLoadSubfile(const char* directory = nullptr);
 		};
 
 		// the manager of bulk structure
@@ -509,19 +552,42 @@ namespace eb {	// en bloc
 			manager(const char* path);
 			virtual ~manager();
             std::string url;
-			bool download();																								//save, download things from memory to disk. returns false if failed.
-			bool upload();																									//fetch, upload things from disk to memory. returns false if failed.
-			memPtr<Subfile> findSubfile(const char* fileName);																//find specific subfile in this manager by path. subfile is the file be used for Egress
-			memPtr<Egress> findEgress(const memPtr<Subfile> subfile, const char* kw, const char* type);						//find Egress by keyword and type
-			impPtr<Ingress> findIngress(const char* kw, const char* type);													//find Ingress by keyword and type
-			inline void setUrl(const std::string& scptr) { url = scptr; }                                                   //set the path of the manager
-			char* getFileName();																							//if url is vacancy returns nullptr
-			bool deserialize(uint8_t* Ptr, uint32_t StringSize);															//binary deserialize the whole manager
-			void serialize(std::vector<uint8_t>* bc);																		//binary serialize the whole manager
+			//save, download things from memory to disk. returns false if failed.
+			bool download();
+			//fetch, upload things from disk to memory. returns false if failed.
+			bool upload();
+			//find specific subfile in this manager by path. subfile is the file be used for Egress
+			memPtr<Subfile> findSubfile(const char* fileName);
+			//find Egress by keyword and type
+			memPtr<Egress> findEgress(const memPtr<Subfile> subfile, const char* kw, const char* type);
+			//find Ingress by keyword and type
+			impPtr<Ingress> findIngress(const char* kw, const char* type);
+			//set the path of the manager
+			inline void setUrl(const std::string& scptr) { url = scptr; }
+			//if url is vacancy returns nullptr
+			char* getFileName();
+			//binary deserialize the whole manager
+			bool deserialize(uint8_t* Ptr, uint32_t StringSize);
+			//binary serialize the whole manager
+			void serialize(std::vector<uint8_t>* bc);
+			//binary deserialize the specific sub object
+			template<typename T>
+			bool deserializeSub(T& sub, uint8_t* Ptr, uint32_t StringSize);
+			//binary serialize the specific sub object
+			template<typename T>
+			bool serializeSub(T& sub, const std::string&);
+#if MEM_RJSON_ON
+			//binary Json deserialize the specific sub object
+			template<typename T>
+			bool deserializeSubJson(T& sub, uint8_t* Ptr, uint32_t StringSize);
+			//binary Json serialize the specific sub object
+			template<typename T>
+			bool serializeSubJson(T& sub, const std::string&);
+#endif
 			uint32_t statusBadValue = 0;																					//the sum of bad value in the last deserialize call
-			uint32_t maxContainerSize = 0;																					//max size when deserializing a stl container, 0 for no limit.
 		private:
-			[[nodiscard]] memPtr<Egress> makeEgress_IngressPair(const impPtr<Ingress>& target, const char* kw);				//make a pair of Ingress-Egress. This function execute by egress manager, and it will make an Ingress to point target eb::base in target manager, and returns an Egress.
+			//make a pair of Ingress-Egress. This function execute by egress manager, and it will make an Ingress to point target eb::base in target manager, and returns an Egress.
+			[[nodiscard]] memPtr<Egress> makeEgress_IngressPair(const impPtr<Ingress>& target, const char* kw);
 			void thisCons();
 			void thisDest();
 			virtual void save_fetch(para para) = 0;
@@ -633,7 +699,3 @@ namespace eb {	// en bloc
 #ifdef _MSC_VER
 #pragma warning(default: __MEM_MANAGER_DISABLE_WARINIGS)
 #endif
-/*
-* update history:
-* [2024.07.26] totally refurbish, basically reconfiguration;
-*/
