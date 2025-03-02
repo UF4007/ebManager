@@ -19,7 +19,7 @@
 	</a>
 </div>
 
-# ebManager
+# eb::manager Serialize and Reflection
 
 [English(pending)](README-en.md)  
 ### 提供了对有环图、继承等复杂数据结构的整体管理（序列化、跨文件引用、内存标记与全体析构）方案。
