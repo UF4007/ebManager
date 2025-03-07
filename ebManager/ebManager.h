@@ -572,18 +572,10 @@ namespace eb {	// en bloc
 			void serialize(std::vector<uint8_t>* bc);
 			//binary deserialize the specific sub object
 			template<typename T>
-			bool deserializeSub(T& sub, uint8_t* Ptr, uint32_t StringSize);
+			std::enable_if_t<eb::has_save_fetch_sub<T>::value, bool> deserializeSub(T& sub, uint8_t* Ptr, uint32_t StringSize);
 			//binary serialize the specific sub object
 			template<typename T>
-			bool serializeSub(T& sub, const std::string&);
-#if MEM_RJSON_ON
-			//binary Json deserialize the specific sub object
-			template<typename T>
-			bool deserializeSubJson(T& sub, uint8_t* Ptr, uint32_t StringSize);
-			//binary Json serialize the specific sub object
-			template<typename T>
-			bool serializeSubJson(T& sub, const std::string&);
-#endif
+			std::enable_if_t<eb::has_save_fetch_sub<T>::value, void> serializeSub(T& sub, std::vector<uint8_t>* bc);
 			uint32_t statusBadValue = 0;																					//the sum of bad value in the last deserialize call
 		private:
 			//make a pair of Ingress-Egress. This function execute by egress manager, and it will make an Ingress to point target eb::base in target manager, and returns an Egress.

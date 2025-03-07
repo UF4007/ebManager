@@ -2900,24 +2900,64 @@ inline void manager::serialize(std::vector<uint8_t>* bc)
 	this->ptrTable.clear();
 }
 template<typename T>
-bool manager::deserializeSub(T& sub, uint8_t* Ptr, uint32_t StringSize)
+inline std::enable_if_t<eb::has_save_fetch_sub<T>::value, bool>
+manager::deserializeSub(T& sub, uint8_t* Ptr, uint32_t StringSize)
 {
+	para mp;
+	mp.order = para::binary_deserialize_base;
+	mp.section.startPointer = mp.section.likelyPointer = Ptr;
 
+	//find long variable zone
+	uint8_t* end = Ptr + StringSize;
+	for (int zeroCount = 0; Ptr < end; Ptr++)
+	{
+		if (zeroCount == 3)
+		{
+			if (*Ptr)
+				break;
+		}
+		else if (*Ptr == 0)
+		{
+			zeroCount++;
+		}
+		else
+		{
+			zeroCount = 0;
+		}
+	}
+
+	this->binSeri.start = Ptr - 1;
+	this->binSeri.end = end;
+	this->statusBadValue = 0;
+	sub.save_fetch_sub(this, "", mp);
+	return true;
 }
 template<typename T>
-bool manager::serializeSub(T& sub, const std::string&)
+inline std::enable_if_t<eb::has_save_fetch_sub<T>::value, void>
+manager::serializeSub(T& sub, std::vector<uint8_t>* bc)
 {
+	bc->clear();
+	std::vector<uint8_t>& sectionVector = *bc;
+	para mp;
+	mp.order = para::binary_serialize_base;
+	mp.sectionVector = &sectionVector;
 
-}
-template<typename T>
-bool manager::deserializeSubJson(T& sub, uint8_t* Ptr, uint32_t StringSize)
-{
+	std::vector<uint8_t> longVars;
+	longVars.emplace_back(0);
+	this->binSeri.bytes = &longVars;
 
-}
-template<typename T>
-bool manager::serializeSubJson(T& sub, const std::string&)
-{
+	sub.save_fetch_sub(this, "", mp);
 
+	//merge section and long variable zone
+	if (longVars.size() > 1)
+	{
+		sectionVector.emplace_back(0);
+		sectionVector.emplace_back(0);
+		if (longVars.size())
+		{
+			sectionVector.insert(sectionVector.end(), longVars.begin(), longVars.end());
+		}
+	}
 }
 
 

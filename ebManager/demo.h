@@ -434,6 +434,7 @@ inline void eb_testmain()
 		testManagerA = new testManager();
 		testManagerA->setUrl(url2);
 		testManagerA->upload();
+		testManagerA->upload();
 		testIngr* ingressSuccess;
 		//testManagerA->anothert1.release();
 		std::cout << "mem test swaped\n";
