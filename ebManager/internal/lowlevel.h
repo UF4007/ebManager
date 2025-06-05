@@ -278,7 +278,7 @@ class lowlevel {
 	};
 
 	//time function
-	static constexpr int days_in_month[] = { 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 };
+	static constexpr size_t days_in_month[] = { 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 };
 	static constexpr uint64_t hour_s = 60 * 60;
 	static constexpr uint64_t day_s = 24 * hour_s;
 	static constexpr uint64_t common_year_s = 365 * day_s;

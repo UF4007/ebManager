@@ -1,5 +1,5 @@
 /* En bloc data structure manager and serialize lib
- * ------Head-Only------
+ * ------Header-Only------
  * 
  * implements a more flexible single-thread smart pointer, cross-file reference, static reflection, binary serialization, and JSON serialization in the eb::base/eb::manager class.
  * 
