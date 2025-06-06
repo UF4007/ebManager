@@ -342,6 +342,8 @@ struct Example : public eb::base {
 }
 ```
 
+---  
+
 ### 原生数组
 
 - 支持所有C++原生定长数组类型，如`int arr[10]`、`float buf[256]`等。
@@ -383,6 +385,8 @@ struct Example : public eb::base {
   ]
 }
 ```
+
+---  
 
 ### STL容器
 
@@ -443,7 +447,7 @@ struct Example : public eb::base {
 }
 ```
 
-- STL容器的序列化/反序列化完全自动，支持与其他类型混合嵌套使用，无需手动干预。
+---  
 
 ### 原子量
 
@@ -480,6 +484,8 @@ struct Example : public eb::base {
   "atom": 3.1415
 }
 ```
+
+---  
 
 ### 字符串
 
@@ -525,6 +531,8 @@ struct Example : public eb::base {
   "wname": "世界"
 }
 ```
+
+---  
 
 ### memPtr系列指针
 
@@ -582,6 +590,8 @@ struct Example : public eb::base {
 }
 ```
 
+---  
+
 ### 文件出入口
 
 - 指向被另一个`eb::manager`所管理数据的接口。
@@ -593,6 +603,8 @@ struct Example : public eb::base {
 #### JSON序列化行为
 
 - 不能序列化出入口。
+
+---  
 
 ### variant
 
@@ -633,6 +645,8 @@ struct Example : public eb::base {
 }
 ```
 
+---  
+
 ### pair
 
 - 支持`std::pair<T1, T2>`类型的序列化与反序列化，T1/T2可为任意可序列化类型。
@@ -671,9 +685,13 @@ struct Example : public eb::base {
 }
 ```
 
+---  
+
 ### tuple
 
 #### （暂不，拟支持）
+
+---  
 
 ### optional
 
@@ -714,6 +732,8 @@ struct Example : public eb::base {
 
 - 若无值时，JSON此项不存在
 
+---  
+
 ### pFunction
 
 - `eb::pFunction<Ret(Args...), ID>`类型实际上是一个简单的32位无符号索引，间接引用一个函数指针。
@@ -752,6 +772,8 @@ INITIALIZE_PFUNCTION(void(int), 0, func)
 }
 ```
 
+---  
+
 ### 非侵入式，任意结构体的内存直接序列化
 
 - 支持任意POD（Plain Old Data）类型、C风格结构体、无虚函数/无指针成员的简单结构体。
@@ -789,6 +811,8 @@ struct Example : public eb::base {
   "any": "R1dQUEFueV8="
 }
 ```
+
+---  
 
 ### 子结构体序列化
 
@@ -843,7 +867,7 @@ struct Example : public eb::base {
 }
 ```
 
----
+---  
 
 ### 自定义二进制序列化
 
@@ -891,7 +915,7 @@ struct Example : public eb::base {
 }
 ```
 
----
+---  
 
 ## 跨文件引用：出入口机制
 
