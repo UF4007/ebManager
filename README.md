@@ -126,6 +126,7 @@ eb_testmain();
   - [variant](#variant)
   - [pair](#pair)
   - [tuple](#tuple)	（暂不，拟支持）
+  - [时间类型](#时间类型)
   - [optional](#optional)
   - [pFunction](#pfunction)
   - [非侵入式，任意结构体的内存直接序列化](#非侵入式任意结构体的内存直接序列化)
@@ -553,7 +554,7 @@ struct Example : public eb::base {
 
 - 若指针无效，则序列化为null
 - 以对象内容输出，memPtr会递归输出所指对象，impPtr不输出任何内容。
-- 不支持有环图（JSON不支持循环结构），如有环则输出字符串“Recurring Object”。
+- 不支持有环图（JSON不支持循环结构），如有环则输出字符串"Recurring Object"。
 - 若从待序列化结构体出发，存在两个指针指向同一个对象，此时JSON无法正确表达这种结构，这个对象将会被序列化两次，在反序列化时，也会被构造成不同对象！
 
 #### 说明
@@ -621,7 +622,7 @@ struct Example : public eb::base {
 
 #### JSON序列化行为
 
-- 以对象形式输出，包含类型索引`"Variant Type"`和值`"Value"`。
+- 以对象形式输出，包含类型索引"Variant Type"和值"Value"。
 
 #### 说明
 
@@ -694,6 +695,62 @@ struct Example : public eb::base {
 ### tuple
 
 #### （暂不，拟支持）
+
+---  
+
+### 时间类型
+
+- 支持`std::chrono::duration<Rep, Period>`、`std::chrono::time_point<Clock, Duration>`等C++标准时间类型的序列化与反序列化。
+- 支持常见的`std::chrono::system_clock::time_point`、`std::chrono::milliseconds`、`std::chrono::seconds`等。
+
+#### 二进制序列化行为
+
+- 对于`duration`，直接序列化其count()数值（底层整数）。
+- 对于`time_point`，序列化其自纪元以来的duration count（底层整数）。
+- 反序列化时自动恢复为原始时间类型。
+
+#### JSON序列化行为
+
+- 支持多种格式（可配置）：
+  - 以整数输出（如自纪元以来的秒数、毫秒数、底层count值）。
+  - 以字符串输出（如"2024-05-01"）。
+  - 以对象输出（如{"year":2024,"month":5,"day":1}）。
+- 默认通常为整数（如毫秒或秒）。
+
+#### 说明
+
+- 使用方法：只需在`save_fetch`中用`GWPP("time", t, para);`声明即可。
+- 示例：
+
+```cpp
+struct Example : public eb::base {
+    std::chrono::system_clock::time_point tp;
+    std::chrono::milliseconds ms;
+    void save_fetch(eb::para para) override {
+        GWPP("tp", tp, para);
+        GWPP("ms", ms, para);
+    }
+    Example(eb::manager* m) : base(m) {}
+};
+```
+
+- 序列化为JSON时的样例（以毫秒为例）：
+
+```json
+{
+  "tp": 1714540800000,
+  "ms": 12345
+}
+```
+
+- 也可能输出为：
+
+```json
+{
+  "tp": "2024-05-01",
+  "ms": 12345
+}
+```
 
 ---  
 
