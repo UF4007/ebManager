@@ -36,7 +36,7 @@
 
 #### 示例代码
 
-```C++
+```cpp
 #include "ebManager/ebManager.h"
 
 struct testU : public eb::base {			//继承eb::base
@@ -93,7 +93,7 @@ int main(){
 }
 ```
 
-**详细Demo兼单元测试 :** 
+**Demo兼单元测试 :** 
 
 ```C++
 #include "ebManager/demo.h"
@@ -151,6 +151,8 @@ eb_testmain();
 2. 实现save_fetch函数，在其中用`GWPP`声明所有需要序列化的成员变量
 3. 构造函数需接收manager指针并传递给基类
 
+**注意**： `eb::base`的派生类必须使用`new`申请在堆中，若为栈中成员、全局变量、其他结构体成员时，**行为未定义**。堆中的`eb::base`使用memPtr系列指针进行管理。
+
 ```cpp
 #include "ebManager/ebManager.h"
 
@@ -173,11 +175,10 @@ struct testU : public eb::base {
 
 - `save_fetch`函数在序列化和反序列化时都会被自动调用，`GWPP`会根据para参数自动判断是读还是写。
 - 只需在`save_fetch`中声明需要序列化的成员变量，其他工作由库自动完成。
-- 构造函数必须接收`eb::manager*`类型参数，并传递给`eb::base`，以便对象能被manager统一管理。
 
 ## eb::manager
 
-`eb::manager`是ebManager库中用于统一管理对象生命周期、序列化和反序列化的核心类。它继承自`eb::base`，代表一个对象集合的"根"，通常对应于一个文件或数据块。所有被管理的对象都需要通过`eb::manager`进行创建和维护。
+`eb::manager`是ebManager库中用于统一管理对象生命周期、序列化和反序列化的核心类。它继承自`eb::base`，代表一个对象集合的"根"，通常对应于一个文件或数据块。所有被管理的对象都需要传递`eb::manager*`进行关联。
 
 ### 典型用法
 
@@ -537,6 +538,9 @@ struct Example : public eb::base {
 ### memPtr系列指针
 
 - 支持eb::memPtr<T>、eb::impPtr<T>、eb::dumbPtr<T>等自定义智能指针类型，T需继承自eb::base。
+- 在ebManager中，结构体成员**不能直接嵌套为另一个eb::base子类对象**，只能通过指针（memPtr、impPtr）来管理子对象。
+
+**注意**：若序列化/反序列化递归时，递归到不属于此`ebManager`的`eb::base`子类对象，则忽略。跨文件引用请使用Ingress/Egress机制，或自定义跨文件接口。
 
 #### 二进制序列化行为
 
@@ -844,7 +848,7 @@ struct Example : public eb::base {
 };
 ```
 
-- 其完全等价于：
+- 其序列化/反序列化行为等价于：
 
 ```cpp
 struct Example : public eb::base {

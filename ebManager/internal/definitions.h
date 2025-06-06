@@ -2345,7 +2345,7 @@ inline void base::GWPP_Base(void* pValue, impPtr<_mu, _r>& var, para& para) {
 	case para::binary_serialize_manager:
 	{
 		if (var.isEmpty())return;
-		assert((var->mngr == this->mngr) || !("Serialize Assert False: base`s manager cannot be cross."));
+		if (var->base::mngr != this->base::mngr)return;
 
 		if (this->mngr->ptrTable.cend() != this->mngr->ptrTable.find(lowlevel::memPtrCorr(var.ptr->content, 0)))
 		{
@@ -2430,7 +2430,7 @@ inline void base::GWPP_Base(void* pValue, memPtr<_mu, _r>& var, para& param) {
 			lowlevel::mem_toBytes(ref, dataVector, this->mngr->binSeri.bytes);
 			break;
 		}
-		assert((var->mngr == this->mngr) || !("Serialize Assert False: base`s manager cannot be cross."));
+		if (var->base::mngr != this->base::mngr)return;
 
 		lowlevel::mem_toBytes(var.ptr->content, dataVector, this->mngr->binSeri.bytes);
 
