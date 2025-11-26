@@ -15,6 +15,7 @@
 #include <sstream>
 #include <mutex>
 #include <locale>
+#include <chrono>
 //#include <codecvt>	//deprecated.
 #include <iomanip>
 #include <algorithm>

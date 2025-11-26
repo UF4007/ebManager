@@ -5,10 +5,13 @@ constexpr uint8_t magicOfFile64[] = { 0x17, 0x3a, 0x56, 0x64 };
 
 #if defined(_MSC_VER)  // MSVC
 #define MEM_PACKED_STRUCT(___name___) \
-        __pragma(pack(push, 1)) struct ___name___ __pragma(pack(pop))
+        __pragma(pack(push, 1)) struct ___name___ 
+#define MEM_PACKED_STRUCT_END \
+        __pragma(pack(pop))
 #else
 #define MEM_PACKED_STRUCT(___name___) \
         struct __attribute__((packed, aligned(1))) ___name___
+#define MEM_PACKED_STRUCT_END
 #endif
 
 MEM_PACKED_STRUCT(headerOfFile) {
@@ -24,6 +27,7 @@ MEM_PACKED_STRUCT(headerOfFile) {
 	} endian;
 	uint8_t reserve[31];
 };
+MEM_PACKED_STRUCT_END
 // that means a single file cannot be larger than 4GB. that is enough. who needs a 4GB large file?
 
 
@@ -31,6 +35,7 @@ MEM_PACKED_STRUCT(variantOfFile) {
 	uint32_t offset;
 	uint32_t type;
 };
+MEM_PACKED_STRUCT_END
 //how the variant save in the file
 
 
@@ -38,12 +43,14 @@ MEM_PACKED_STRUCT(pairOfFile) {
 	uint32_t offset;
 	uint32_t sizeOfFirst;
 };
+MEM_PACKED_STRUCT_END
 //how the pair save in the file
 
 
 MEM_PACKED_STRUCT(optionalOfFile) {
 	uint32_t offset;
 };
+MEM_PACKED_STRUCT_END
 //how the optional save in the file
 
 inline bool is_big_endian() {
